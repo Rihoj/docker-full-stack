@@ -24,7 +24,7 @@ help:
 	@echo "  test                Test application"
 
 init:
-	@$(shell cp -n $(shell pwd)/web/app/composer.json.dist $(shell pwd)/web/app/composer.json 2> /dev/null)
+	@$(shell cp -n $(shell pwd)/.env.example $(shell pwd)/.env 2> /dev/null)
 
 apidoc:
 	@docker-compose exec -T php php -d memory_limit=256M -d xdebug.profiler_enable=0 ./app/vendor/bin/apigen generate app/src --destination app/doc
@@ -44,7 +44,7 @@ code-sniff:
 	@docker-compose exec -T php ./app/vendor/bin/phpcs -v --standard=PSR2 app/src
 
 composer-up:
-	@docker run --rm -v $(shell pwd)/web/app:/app composer update
+	@docker run --rm -v $(shell pwd)/web:/app composer update
 
 docker-start: init
 	docker-compose up -d
@@ -54,7 +54,7 @@ docker-stop:
 	@make clean
 
 gen-certs:
-	@docker run --rm -v $(shell pwd)/etc/ssl:/certificates -e "SERVER=$(NGINX_HOST)" jacoelho/generate-certificate
+	@docker run --rm -v $(shell pwd)/etc/ssl.proxy:/certificates -e "SERVER=*$(ROOT_DOMAIN)" jacoelho/generate-certificate
 
 logs:
 	@docker-compose logs -f
@@ -69,15 +69,15 @@ mysql-restore:
 
 phpmd:
 	@docker-compose exec -T php \
-	./app/vendor/bin/phpmd \
-	./app/src \
+	./vendor/bin/phpmd \
+	./app \
 	text cleancode,codesize,controversial,design,naming,unusedcode
 
 test: code-sniff
-	@docker-compose exec -T php ./app/vendor/bin/phpunit --colors=always --configuration ./app/
+	@docker-compose exec -T php ./vendor/bin/phpunit --colors=always --configuration ./app/src
 	@make resetOwner
 
 resetOwner:
-	@$(shell chown -Rf $(SUDO_USER):$(shell id -g -n $(SUDO_USER)) $(MYSQL_DUMPS_DIR) "$(shell pwd)/etc/ssl" "$(shell pwd)/web/app" 2> /dev/null)
+	@$(shell chown -Rf $(SUDO_USER):$(shell id -g -n $(SUDO_USER)) $(MYSQL_DUMPS_DIR) "$(shell pwd)/etc/ssl" "$(shell pwd)/web" 2> /dev/null)
 
 .PHONY: clean test code-sniff init

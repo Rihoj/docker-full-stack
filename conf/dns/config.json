@@ -1,0 +1,64 @@
+{
+	"remoteDnsServers": [
+		[
+			8,
+			8,
+			8,
+			8
+		],
+		[
+			4,
+			4,
+			4,
+			4
+		]
+	],
+	"envs": [
+		{
+			"name": "",
+			"hostnames": [
+				{
+					"id": 1,
+					"hostname": ".cpc.rp.io",
+					"ip": [
+						127,
+						0,
+						0,
+						1
+					],
+					"ttl": 100
+				},
+				{
+					"id": 4,
+					"hostname": "cpc.rp.io",
+					"ip": [
+						127,
+						0,
+						0,
+						1
+					],
+					"ttl": 100
+				},
+				{
+					"id": 5,
+					"hostname": ".localstack.cpc.rp.io",
+					"ip": [
+						127,
+						0,
+						0,
+						1
+					],
+					"ttl": 100
+				}
+			]
+		}
+	],
+	"activeEnv": "",
+	"lastId": 5,
+	"webServerPort": 80,
+	"dnsServerPort": 0,
+	"defaultDns": false,
+	"logLevel": "WARNING",
+	"logFile": "",
+	"registerContainerNames": true
+}

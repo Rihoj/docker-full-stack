@@ -1,56 +1,148 @@
 version: '3'
 services:
     web:
-        image: nginx:alpine
+        image: rihoj/nginxnode
+        container_name: ${WEB_DOMAIN}
+        hostname: ${WEB_HOST}
+        restart: unless-stopped
         volumes:
-            - "./etc/nginx/default.conf:/etc/nginx/conf.d/default.conf"
-            - "./etc/ssl:/etc/ssl"
-            - "./web:/var/www/html"
-            - "./etc/nginx/default.template.conf:/etc/nginx/conf.d/default.template"
-        ports:
-            - "8000:80"
-            - "3000:443"
-        environment:
-            - NGINX_HOST=${NGINX_HOST}
-        command: /bin/sh -c "envsubst '$$NGINX_HOST' < /etc/nginx/conf.d/default.template > /etc/nginx/conf.d/default.conf && nginx -g 'daemon off;'"
-        restart: always
+            # - ./etc/ssl.proxy:/etc/ssl
+            - ../web:/var/www/html
+            - ./conf/nginx/default.template.conf:/etc/nginx/conf.d/default.template
+            - ./etc/nginx:/etc/nginx/conf.d
+        expose:
+            - 80
+            # - 443
+        links:
+            - db:${MYSQL_HOST}
+        env_file:
+            - .env
+        command: sh -c "envsubst \"`env | awk -F = '{printf \" $$%s\", $$1}'`\" < /etc/nginx/conf.d/default.template > /etc/nginx/conf.d/default.conf && nginx -g 'daemon off;' && chown -R www-data:www-data /var/www/html/ && chmod 777 -R /var/www/html/storage/logs"
         depends_on:
             - php
-            - mysqldb
+            - db
+            - mailhog
+            - redis
+            - localstack
+
     php:
         image: nanoninja/php-fpm:${PHP_VERSION}
-        restart: always
+        container_name: ${PHP_HOST}
+        hostname: ${PHP_HOST}
+        restart: unless-stopped
         volumes:
-            - "./etc/php/php.ini:/usr/local/etc/php/conf.d/php.ini"
-            - "./web:/var/www/html"
+            - ./conf/php/php.ini:/usr/local/etc/php/conf.d/php.ini
+            - ../web:/var/www/html
     composer:
         image: "composer"
         volumes:
-            - "./web/app:/app"
-        command: install
-    myadmin:
+            - ../web:/app
+        command: install --ignore-platform-reqs
+    mailhog:
+        image: mailhog/mailhog
+        container_name: ${MAILHOG_DOMAIN}
+        hostname: ${MAILHOG_HOST}
+        restart: unless-stopped
+        expose:
+            - 8025
+            - 1025
+    phpmyadmin:
         image: phpmyadmin/phpmyadmin
-        container_name: phpmyadmin
-        ports:
-            - "8080:80"
+        container_name: ${PHPMYADMIN_DOMAIN}
+        hostname: ${PHPMYADMIN_HOST}
+        expose:
+            - 80
+        env_file:
+            - .env
         environment:
-            - PMA_ARBITRARY=1
             - PMA_HOST=${MYSQL_HOST}
-        restart: always
+            - PMA_ABSOLUTE_URI=http://${PHPMYADMIN_DOMAIN}.${WEB_DOMAIN}.${ROOT_DOMAIN}/
+        restart: unless-stopped
         depends_on:
-            - mysqldb
-    mysqldb:
+            - db
+        links:
+            - "db:db"
+    db:
         image: mysql:${MYSQL_VERSION}
         container_name: ${MYSQL_HOST}
-        restart: always
+        hostname: ${MYSQL_HOST}
+        command: --default-authentication-plugin=mysql_native_password
+        restart: unless-stopped
         env_file:
-            - ".env"
-        environment:
-            - MYSQL_DATABASE=${MYSQL_DATABASE}
-            - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD}
-            - MYSQL_USER=${MYSQL_USER}
-            - MYSQL_PASSWORD=${MYSQL_PASSWORD}
-        ports:
-            - "8989:3306"
+            - .env
+        expose:
+            - 3306
         volumes:
-            - "./data/db/mysql:/var/lib/mysql"
+            - ./data/db/mysql:/var/lib/mysql
+    redis:
+        image: "redis:alpine"
+        container_name: ${REDIS_HOST}
+        hostname: ${REDIS_HOST}
+        restart: unless-stopped
+        expose:
+            - 6379
+    localstack:
+        image: localstack/localstack
+        container_name: ${LOCALSTACK_DOMAIN}
+        hostname: ${LOCALSTACK_HOST}
+        restart: unless-stopped
+        environment:
+            - HOSTNAME=${LOCALSTACK_HOST}
+            - HOSTNAME_EXTERNAL=${LOCALSTACK_DOMAIN}.${WEB_DOMAIN}.${ROOT_DOMAIN}
+            - SERVICES=${LOCALSTACK_SERVICES}
+            - DATA_DIR=${LOCALSTACK_DATA_DIR}
+        volumes:
+            - ./conf/localstack/aws/:/root/.aws/
+        expose:
+            - 8080
+            - 4567
+            - 4568
+            - 4569
+            - 4570
+            - 4571
+            - 4572
+            - 4573
+            - 4574
+            - 4575
+            - 4576
+            - 4577
+            - 4578
+            - 4579
+            - 4580
+            - 4581
+            - 4582
+            - 4583
+            - 4584
+    dns:
+        image: defreitas/dns-proxy-server
+        hostname: ${DNS_HOST}
+        container_name: ${DNS_DOMAIN}
+        restart: unless-stopped
+        expose:
+            - 80
+        volumes:
+          - /etc/resolv.conf:/etc/resolv.conf
+          - /var/run/docker.sock:/var/run/docker.sock
+          - ./conf/dns/config.json:/app/conf/config.json
+    nginx-proxy:
+        image: nginx:alpine
+        container_name: proxy
+        restart: unless-stopped
+        env_file:
+            - .env
+        command: sh -c "/etc/scripts/proxy.sh"
+        links:
+            - mailhog
+            - phpmyadmin
+            - redis
+            - localstack
+            - web
+            - php
+        ports:
+          - "80:80"
+        volumes:
+          - /var/run/docker.sock:/tmp/docker.sock:ro
+          - ./conf/proxy:/etc/nginx/conf.d.templates
+          - ./etc/proxy:/etc/nginx/conf.d
+          - ./scripts/proxy.sh:/etc/scripts/proxy.sh
+          # - ./etc/ssl.proxy:/etc/ssl
