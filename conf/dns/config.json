@@ -38,17 +38,6 @@
 						1
 					],
 					"ttl": 100
-				},
-				{
-					"id": 5,
-					"hostname": ".localstack.cpc.rp.io",
-					"ip": [
-						127,
-						0,
-						0,
-						1
-					],
-					"ttl": 100
 				}
 			]
 		}
@@ -57,7 +46,7 @@
 	"lastId": 5,
 	"webServerPort": 80,
 	"dnsServerPort": 0,
-	"defaultDns": false,
+	"defaultDns": true,
 	"logLevel": "WARNING",
 	"logFile": "",
 	"registerContainerNames": true
