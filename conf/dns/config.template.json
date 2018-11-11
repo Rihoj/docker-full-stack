@@ -17,20 +17,9 @@
 		{
 			"name": "",
 			"hostnames": [
-                {
-					"id": 1,
-					"hostname": ".localstack.rp.io",
-					"ip": [
-						127,
-						0,
-						0,
-						1
-					],
-					"ttl": 100
-				},
 				{
-					"id": 2,
-					"hostname": ".rp.io",
+					"id": 1,
+					"hostname": ".${ROOT_DOMAIN}",
 					"ip": [
 						127,
 						0,
@@ -43,7 +32,7 @@
 		}
 	],
 	"activeEnv": "",
-	"lastId": 6,
+	"lastId": 5,
 	"webServerPort": 80,
 	"dnsServerPort": 0,
 	"defaultDns": true,

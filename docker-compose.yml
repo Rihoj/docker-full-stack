@@ -6,13 +6,10 @@ services:
         hostname: ${WEB_HOST}
         restart: unless-stopped
         volumes:
-            # - ./etc/ssl.proxy:/etc/ssl
             - ../web:/var/www/html
             - ./conf/nginx/default.template.conf:/etc/nginx/conf.d/default.template
-            - ./etc/nginx:/etc/nginx/conf.d
         expose:
             - 80
-            # - 443
         links:
             - db:${MYSQL_HOST}
         env_file:
@@ -56,12 +53,17 @@ services:
             - .env
         environment:
             - PMA_HOST=${MYSQL_HOST}
-            - PMA_ABSOLUTE_URI=http://${PHPMYADMIN_DOMAIN}.${WEB_DOMAIN}.${ROOT_DOMAIN}/
+            - PMA_ABSOLUTE_URI=https://${PHPMYADMIN_DOMAIN}.${WEB_DOMAIN}.${ROOT_DOMAIN}/
         restart: unless-stopped
         depends_on:
             - db
         links:
             - "db:db"
+        volumes:
+            - ./conf/phpmyadmin/config.php:/etc/phpmyadmin/config.user.inc.php
+            - ./conf/ssl/server.key:/etc/mysql/server.key
+            - ./conf/ssl/server.pem:/etc/mysql/server.pem
+            - ./conf/ssl/cacert.pem:/etc/mysql/cacert.pem
     db:
         image: mysql:${MYSQL_VERSION}
         container_name: ${MYSQL_HOST}
@@ -74,6 +76,10 @@ services:
             - 3306
         volumes:
             - ./data/db/mysql:/var/lib/mysql
+            - ./conf/mysql:/etc/mysql/conf.d
+            - ./conf/ssl/server.key:/etc/ssl/server.key
+            - ./conf/ssl/server.pem:/etc/ssl/server.pem
+            - ./conf/ssl/cacert.pem:/etc/ssl/cacert.pem
     redis:
         image: "redis:alpine"
         container_name: ${REDIS_HOST}
@@ -113,11 +119,31 @@ services:
             - 4582
             - 4583
             - 4584
+    aws:
+        image: mesosphere/aws-cli
+        hostname: aws.io
+        container_name: aws-cli
+        entrypoint: /etc/scripts/aws_startup.sh
+        depends_on:
+            - localstack
+            - nginx-proxy
+        environment:
+            - AWS_ACCESS_KEY_ID=foo
+            - AWS_SECRET_ACCESS_KEY=bar
+            - AWS_DEFAULT_REGION=us-east-1
+        env_file:
+            - ".env"
+        volumes:
+            - /var/run/docker.sock:/tmp/docker.sock:ro
+            - ./conf/localstack/aws/:/root/.aws/
+            - ./scripts/aws_startup.sh:/etc/scripts/aws_startup.sh
     dns:
         image: defreitas/dns-proxy-server
         hostname: ${DNS_HOST}
         container_name: ${DNS_DOMAIN}
         restart: unless-stopped
+        env_file:
+            - .env
         expose:
             - 80
         volumes:
@@ -140,9 +166,9 @@ services:
             - php
         ports:
           - "80:80"
+          - "443:443"
         volumes:
           - /var/run/docker.sock:/tmp/docker.sock:ro
           - ./conf/proxy:/etc/nginx/conf.d.templates
-          - ./etc/proxy:/etc/nginx/conf.d
           - ./scripts/proxy.sh:/etc/scripts/proxy.sh
-          # - ./etc/ssl.proxy:/etc/ssl
+          - ./conf/ssl:/etc/ssl

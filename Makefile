@@ -54,7 +54,7 @@ docker-stop:
 	@make clean
 
 gen-certs:
-	@docker run --rm -v $(shell pwd)/etc/ssl.proxy:/certificates -e "SERVER=*$(ROOT_DOMAIN)" jacoelho/generate-certificate
+	@docker run --rm -v $(shell pwd)/conf/ssl:/certificates -e "SERVER=*.$(ROOT_DOMAIN)" -e "SUBJECT=/C=US/ST=Indiana/L=Bloomington/O=IT/OU=*.$(ROOT_DOMAIN)" jacoelho/generate-certificate
 
 logs:
 	@docker-compose logs -f

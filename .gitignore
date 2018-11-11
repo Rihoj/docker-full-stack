@@ -22,7 +22,5 @@ nbproject/
 /nbproject/private/private.properties
 
 # SSL Certs
-etc/*
-!etc/.gitkeep
-etc/ssl/*
-!etc/ssl/.gitkeep
+conf/ssl/*
+!conf/ssl/.gitkeep
