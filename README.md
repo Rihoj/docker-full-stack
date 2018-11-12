@@ -1,6 +1,39 @@
-# Nginx PHP MySQL [![Build Status](https://travis-ci.org/nanoninja/docker-nginx-php-mysql.svg?branch=master)](https://travis-ci.org/nanoninja/docker-nginx-php-mysql) [![GitHub version](https://badge.fury.io/gh/nanoninja%2Fdocker-nginx-php-mysql.svg)](https://badge.fury.io/gh/nanoninja%2Fdocker-nginx-php-mysql)
+# Full Web Stack Docker [![Build Status](https://travis-ci.org/nanoninja/docker-nginx-php-mysql.svg?branch=master)](https://travis-ci.org/nanoninja/docker-nginx-php-mysql) [![GitHub version](https://badge.fury.io/gh/nanoninja%2Fdocker-nginx-php-mysql.svg)](https://badge.fury.io/gh/nanoninja%2Fdocker-nginx-php-mysql)
 
-Docker running Nginx, PHP-FPM, Composer, MySQL and PHPMyAdmin.
+This was origionally a clone of Nanoninja's [docker-nginx-php-mysql](https://github.com/nanoninja/docker-nginx-php-mysql). A docker-compose setup that was developed to have a full web stack for developers to get up an running quickly. This project is still in development, but for the most part is good to go. This is by no means a lightweight stack; it was designed to removie the heavy lifting
+
+
+### Images Used
+
+* [Nginx w\ Node](https://hub.docker.com/r/rihoj/nginxnode/)
+    * This is the web server which will host your code.
+* [PHP-FPM](https://hub.docker.com/r/nanoninja/php-fpm/)
+    * PHP server.
+* [Composer](https://hub.docker.com/_/composer/)
+    * Composer for all your dependencies.
+* [MailHog](https://hub.docker.com/r/mailhog/mailhog/)
+    * Gotta trap them all (emails that is).
+* [PHPMyAdmin](https://hub.docker.com/r/phpmyadmin/phpmyadmin/)
+    * Easy GUI access for mysql.
+* [MySQL](https://hub.docker.com/_/mysql/)
+    * MySQL server.
+* [Redis](https://hub.docker.com/_/redis/)
+    * Redis server (I use this for cache and sessions)
+* [LocalStack](https://hub.docker.com/r/localstack/localstack/)
+    * AWS for local development.
+    * Currently I am only supporting S3 and SQS.
+* [AWS-CLI](https://hub.docker.com/r/mesosphere/aws-cli/)
+    * CLI to access localstack.
+    * For the endpoint please use the LOCALSTACK_HOST from the .env
+* [DNS Proxy Server](https://hub.docker.com/r/defreitas/dns-proxy-server/)
+    * Used in conjunction with the nginx proxy server to allow easy urls.
+    * During load and shutdown of this service you may see a small hiccup in your network connection. Please see [Troubleshooting](#troubleshoot)
+    * If not shutdown correctly this may interrupt your network connection. Please see [Troubleshooting](#troubleshoot)
+* [Nginx](https://hub.docker.com/_/nginx/)
+    * Used as a proxy server.
+    * Works with DNS proxy server to add SSL and hide ports on many services.
+* [Generate Certificate](https://hub.docker.com/r/jacoelho/generate-certificate/)
+    * Used to generate SSL certs.
 
 ## Overview
 
@@ -12,23 +45,27 @@ Docker running Nginx, PHP-FPM, Composer, MySQL and PHPMyAdmin.
 
     We’ll download the code from its repository on GitHub.
 
-3. [Configure Nginx With SSL Certificates](#configure-nginx-with-ssl-certificates) [`Optional`]
+3. [Setup Env](#setup-the-environment)
+
+    This docker compose file works heavily off of the .env file. We will get it setup and ready to go.
+
+4. [Setup SSL Certificates](#setup-ssl-certificates) [`Required`]
 
     We'll generate and configure SSL certificate for nginx before running server.
 
-4. [Configure Xdebug](#configure-xdebug) [`Optional`]
+5. [Configure Xdebug](#configure-xdebug) [`Optional`]
 
     We'll configure Xdebug for IDE (PHPStorm or Netbeans).
 
-5. [Run the application](#run-the-application)
+6. [Run the application](#run-the-application)
 
     By this point we’ll have all the project pieces in place.
 
-6. [Use Makefile](#use-makefile) [`Optional`]
+7. [Use Makefile](#use-makefile) [`Optional`]
 
     When developing, you can use `Makefile` for doing recurrent operations.
 
-7. [Use Docker Commands](#use-docker-commands)
+8. [Use Docker Commands](#use-docker-commands)
 
     When running, you can use docker commands for doing recurrent operations.
 
@@ -36,7 +73,12 @@ ___
 
 ## Install prerequisites
 
-For now, this project has been mainly created for Unix `(Linux/MacOS)`. Perhaps it could work on Windows.
+For now, this project has been mainly created for Unix `(Linux/MacOS)`.
+
+### Tested and approved OSes
+1. `Linux Mint 18.1 Serena`
+
+I will try to test and add more OSes to this list, but I can not verify any MacOS. If you can, please create a PR updating this list.
 
 All requisites should be available for your distribution. The most important are :
 
@@ -44,7 +86,7 @@ All requisites should be available for your distribution. The most important are
 * [Docker](https://docs.docker.com/engine/installation/)
 * [Docker Compose](https://docs.docker.com/compose/install/)
 
-Check if `docker-compose` is already installed by entering the following command : 
+Check if `docker-compose` is already installed by entering the following command :
 
 ```sh
 which docker-compose
@@ -65,27 +107,6 @@ On Ubuntu and Debian these are available in the meta-package build-essential. On
 ```sh
 sudo apt install build-essential
 ```
-
-### Images to use
-
-* [Nginx](https://hub.docker.com/_/nginx/)
-* [MySQL](https://hub.docker.com/_/mysql/)
-* [PHP-FPM](https://hub.docker.com/r/nanoninja/php-fpm/)
-* [Composer](https://hub.docker.com/_/composer/)
-* [PHPMyAdmin](https://hub.docker.com/r/phpmyadmin/phpmyadmin/)
-* [Generate Certificate](https://hub.docker.com/r/jacoelho/generate-certificate/)
-
-You should be careful when installing third party web servers such as MySQL or Nginx.
-
-This project use the following ports :
-
-| Server     | Port |
-|------------|------|
-| MySQL      | 8989 |
-| PHPMyAdmin | 8080 |
-| Nginx      | 8000 |
-| Nginx SSL  | 3000 |
-
 ___
 
 ## Clone the project
@@ -93,80 +114,49 @@ ___
 To install [Git](http://git-scm.com/book/en/v2/Getting-Started-Installing-Git), download it and install following the instructions :
 
 ```sh
-git clone https://github.com/nanoninja/docker-nginx-php-mysql.git
+git clone https://github.com/rihoj/docker-full-stack.git
 ```
 
 Go to the project directory :
 
 ```sh
-cd docker-nginx-php-mysql
+cd docker-full-stack
 ```
+___
 
-### Project tree
+## Setup the environment
 
-```sh
-.
-├── Makefile
-├── README.md
-├── data
-│   └── db
-│       ├── dumps
-│       └── mysql
-├── doc
-├── docker-compose.yml
-├── etc
-│   ├── nginx
-│   │   ├── default.conf
-│   │   └── default.template.conf
-│   ├── php
-│   │   └── php.ini
-│   └── ssl
-└── web
-    ├── app
-    │   ├── composer.json.dist
-    │   ├── phpunit.xml.dist
-    │   ├── src
-    │   │   └── Foo.php
-    │   └── test
-    │       ├── FooTest.php
-    │       └── bootstrap.php
-    └── public
-        └── index.php
-```
+There are two steps to setting up your environment
+
+1. Edit `/etc/hosts` file
+    ```sh
+    # Add the following line to the file.
+    127.0.0.2       rp.io
+    ```
+    It is important to know what you are doing in this file. The rp.io can be changed to your prefered domain. This will be referenced in the `.env` file.
+
+2. Edit `.env` file
+
+    I have tried to explain everything in the env. Please see that file.
 
 ___
 
-## Configure Nginx With SSL Certificates
-
-You can change the host name by editing the `.env` file.
-
-If you modify the host name, do not forget to add it to the `/etc/hosts` file.
+## Setup SSL Certificates
 
 1. Generate SSL certificates
 
     ```sh
-    source .env && sudo docker run --rm -v $(pwd)/etc/ssl:/certificates -e "SERVER=$NGINX_HOST" jacoelho/generate-certificate
+    source .env && sudo docker run --rm -v $(pwd)/conf/ssl:/certificates -e "SERVER=*.$ROOT_DOMAIN" jacoelho/generate-certificate
     ```
-
-2. Configure Nginx
-
-    Do not modify the `etc/nginx/default.conf` file, it is overwritten by  `etc/nginx/default.template.conf`
-
-    Edit nginx file `etc/nginx/default.template.conf` and uncomment the SSL server section :
-
+    or
     ```sh
-    # server {
-    #     server_name ${NGINX_HOST};
-    #
-    #     listen 443 ssl;
-    #     fastcgi_param HTTPS on;
-    #     ...
-    # }
+    make gen-certs
     ```
 
 ___
 
 ## Configure Xdebug
+#### This is a legacy section from Nanoninja. I do not use xdebug and have not been able to test this yet.
 
 If you use another IDE than [PHPStorm](https://www.jetbrains.com/phpstorm/) or [Netbeans](https://netbeans.org/), go to the [remote debugging](https://xdebug.org/docs/remote) section of Xdebug documentation.
 
@@ -189,13 +179,7 @@ ___
 
 ## Run the application
 
-1. Copying the composer configuration file : 
-
-    ```sh
-    cp web/app/composer.json.dist web/app/composer.json
-    ```
-
-2. Start the application :
+1. Start the application :
 
     ```sh
     sudo docker-compose up -d
@@ -207,13 +191,15 @@ ___
     sudo docker-compose logs -f # Follow log output
     ```
 
-3. Open your favorite browser :
+2. Open your favorite browser :
 
-    * [http://localhost:8000](http://localhost:8000/)
-    * [https://localhost:3000](https://localhost:3000/) ([HTTPS](#configure-nginx-with-ssl-certificates) not configured by default)
-    * [http://localhost:8080](http://localhost:8080/) PHPMyAdmin (username: dev, password: dev)
+    Access your sites with the following logic:
+    https://$X_DOMAIN.$ROOT_DOMAIN
 
-4. Stop and clear services
+    I.E. for the phpmyadmin service you would to go to:
+    [https://phpmyadmin.rp.io](https://phpmyadmin.rp.io)
+
+3. Stop and clear services
 
     ```sh
     sudo docker-compose down -v
@@ -222,6 +208,7 @@ ___
 ___
 
 ## Use Makefile
+#### Some of these are still legacy and may not work at this time.
 
 When developing, you can use [Makefile](https://en.wikipedia.org/wiki/Make_(software)) for doing the following operations :
 
@@ -240,6 +227,17 @@ When developing, you can use [Makefile](https://en.wikipedia.org/wiki/Make_(soft
 | phpmd         | Analyse the API with PHP Mess Detector       |
 | test          | Test application with phpunit                |
 
+### Known working Makefile Commands
+
+| Name          | Description                                  |
+|---------------|----------------------------------------------|
+| gen-certs     | Generate SSL certificates for `nginx`        |
+| docker-start  | Create and start containers                  |
+| docker-stop   | Stop and clear all services                  |
+
+### Warning!
+`make docker-stop` will clear your data.
+
 ### Examples
 
 Start the application :
@@ -257,6 +255,7 @@ make help
 ___
 
 ## Use Docker commands
+#### This is a legacy section and may need updated.
 
 ### Installing package with composer
 
@@ -356,7 +355,7 @@ source .env && sudo docker exec -i $(sudo docker-compose ps -q mysqldb) mysql -u
 ```php
 <?php
     try {
-        $dsn = 'mysql:host=mysql;dbname=test;charset=utf8;port=3306';
+        $dsn = 'mysql:host=mysql.io;dbname=test;charset=utf8;port=3306';
         $pdo = new PDO($dsn, 'dev', 'dev');
     } catch (PDOException $e) {
         echo $e->getMessage();
@@ -368,4 +367,18 @@ ___
 
 ## Help us
 
-Any thought, feedback or (hopefully not!)
+I welcome any thoughts, feedback, or bugs! Please create an issue and I will get to it as soon as possible!
+
+___
+
+## TODO
+
+1. Move the web directory into the repository.
+
+2. Update makefile with accurate commands
+
+3. Update documentation.
+
+4. Custom roll AWS-CLI to not need endpoints.
+
+5. Test more operating systems.
