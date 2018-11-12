@@ -1,4 +1,4 @@
-# Full Web Stack Docker [![Build Status](https://travis-ci.org/nanoninja/docker-nginx-php-mysql.svg?branch=master)](https://travis-ci.org/nanoninja/docker-nginx-php-mysql) [![GitHub version](https://badge.fury.io/gh/nanoninja%2Fdocker-nginx-php-mysql.svg)](https://badge.fury.io/gh/nanoninja%2Fdocker-nginx-php-mysql)
+# Full Web Stack W\ Docker [![Build Status](https://travis-ci.org/nanoninja/docker-nginx-php-mysql.svg?branch=master)](https://travis-ci.org/nanoninja/docker-nginx-php-mysql) [![GitHub version](https://badge.fury.io/gh/nanoninja%2Fdocker-nginx-php-mysql.svg)](https://badge.fury.io/gh/nanoninja%2Fdocker-nginx-php-mysql)
 
 This was origionally a clone of Nanoninja's [docker-nginx-php-mysql](https://github.com/nanoninja/docker-nginx-php-mysql). A docker-compose setup that was developed to have a full web stack for developers to get up an running quickly. This project is still in development, but for the most part is good to go. This is by no means a lightweight stack; it was designed to removie the heavy lifting
 
@@ -126,18 +126,22 @@ ___
 
 ## Setup the environment
 
-There are two steps to setting up your environment
+There are three steps to setting up your environment
 
 1. Edit `/etc/hosts` file
     ```sh
     # Add the following line to the file.
     127.0.0.2       rp.io
     ```
-    It is important to know what you are doing in this file. The rp.io can be changed to your prefered domain. This will be referenced in the `.env` file.
+    It is important to know what you are doing in this file. The rp.io can be changed to your preferred domain. This will be referenced in the `.env` file.
 
 2. Edit `.env` file
 
     I have tried to explain everything in the env. Please see that file.
+
+3. Update `./conf/dns/config.json`
+
+    If you have changed the $ROOT_DOMAIN you will need to update the DNS configuration. Hopefully soon this will be configured through the `.env`
 
 ___
 
@@ -363,6 +367,17 @@ source .env && sudo docker exec -i $(sudo docker-compose ps -q mysqldb) mysql -u
 ?>
 ```
 
+## Troubleshoot
+
+### DNS
+
+The DNS proxy server edits your local `/etc/resolv.conf` file. This means that during the start up and shutdown your Internet may see hiccups in connection. This is normal, please bear with it.
+
+If the service does not shut down correctly you may see your internet not work at all. This can be fixed.
+
+Option 1: Edit your local `/etc/resolv.conf` remove the lines with the comment `# dps-entry` and uncomment lines with `# dps-comment`
+
+
 ___
 
 ## Help us
@@ -374,6 +389,8 @@ ___
 ## TODO
 
 1. Move the web directory into the repository.
+
+2. Make DNS config.json be able to use template.
 
 2. Update makefile with accurate commands
 
