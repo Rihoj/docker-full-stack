@@ -381,4 +381,6 @@ ___
 
 4. Custom roll AWS-CLI to not need endpoints.
 
+5. Update `.travis.yml` to update tests.
+
 5. Test more operating systems.
