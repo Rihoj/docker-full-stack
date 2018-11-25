@@ -24,7 +24,7 @@ help:
 	@echo "  test                Test application"
 
 init:
-	@$(shell cp -n $(shell pwd)/.env.example $(shell pwd)/.env 2> /dev/null)
+	@bash ./scripts/init.sh
 
 apidoc:
 	@docker-compose exec -T php php -d memory_limit=256M -d xdebug.profiler_enable=0 ./app/vendor/bin/apigen generate app/src --destination app/doc
